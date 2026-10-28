@@ -1,0 +1,528 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pruebas unitarias: manuales vs. generadas con IA — Kata Tres en Raya</title>
+<style>
+  :root{
+    --ink:#15181d; --paper:#faf8f4; --muted:#606874; --line:#e3ded4;
+    --humano:#b4531c; --soft-h:#f8ece3; --ia:#0f766e; --soft-a:#e4f1f0;
+    --soft:#f0ece4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  @page{size:13.333in 7.5in;margin:0}
+  html,body{background:#dcd8d0}
+  body{font-family:"Segoe UI",SegoeUI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+       font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+  .slide{width:1280px;height:720px;position:relative;background:var(--paper);
+         padding:48px 60px 62px;page-break-after:always;overflow:hidden;
+         box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+  .slide:last-child{page-break-after:auto}
+  .kicker{font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;
+        border-bottom:2.5px solid var(--ink);padding-bottom:12px;margin-bottom:22px}
+  .head h2{font-family:Georgia,serif;font-size:31px;font-weight:600;letter-spacing:-.01em}
+  .head .n{font-size:12px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+  .foot{position:absolute;left:60px;right:60px;bottom:22px;display:flex;justify-content:space-between;
+        font-size:11.5px;color:var(--muted);letter-spacing:.06em;border-top:1px solid var(--line);padding-top:9px}
+  p,li{font-size:16.5px;line-height:1.52}
+  ul{list-style:none} ul li{position:relative;padding-left:17px;margin-bottom:7px}
+  ul li::before{content:"";position:absolute;left:0;top:9px;width:7px;height:7px;background:var(--ink)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .card{background:#fff;border:1px solid var(--line);padding:18px 20px}
+  .card h3{font-size:15px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;font-weight:700}
+  .card.h{border-top:5px solid var(--humano)} .card.h h3{color:var(--humano)}
+  .card.a{border-top:5px solid var(--ia)} .card.a h3{color:var(--ia)}
+  .code{font-family:Consolas,"Cascadia Mono","Courier New",monospace;font-size:12.6px;line-height:1.5;
+        background:#fff;border:1px solid var(--line);padding:13px 15px;white-space:pre;overflow:hidden}
+  .code.h{border-left:5px solid var(--humano)} .code.a{border-left:5px solid var(--ia)}
+  .code .kw{color:#7c3aed;font-weight:700} .code .st{color:#0f766e} .code .cm{color:#8a9099;font-style:italic}
+  .cap{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+  table{width:100%;border-collapse:collapse;font-size:14.4px;background:#fff}
+  th,td{padding:7.5px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:var(--ink);color:#fff;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase}
+  thead th.c{text-align:center} tbody td.c{text-align:center}
+  .th-h{color:#f7c9a9} .th-a{color:#9fe0d8}
+  .hl-h{background:var(--soft-h)} .hl-a{background:var(--soft-a)}
+  .tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.08em;padding:2px 8px;
+       border:1.5px solid currentColor;text-transform:uppercase}
+  .ok{color:var(--ia);font-weight:700} .no{color:var(--humano);font-weight:700}
+  .note{background:var(--soft);border-left:5px solid var(--ink);padding:12px 16px;font-size:15px}
+  .big{font-family:Georgia,serif;font-size:40px;font-weight:600;line-height:1.1}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+  .metric{background:#fff;border:1px solid var(--line);padding:11px 13px}
+  .metric .v{font-family:Georgia,serif;font-size:27px;font-weight:600}
+  .metric .l{font-size:11.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+  /* tableros */
+  .boards{display:flex;gap:34px;justify-content:center;margin-top:6px}
+  .bwrap{text-align:center}
+  .board{position:relative;width:180px;height:180px;background:#fff;border:2.5px solid var(--ink);margin:0 auto}
+  .board .g{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+  .board .g span{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .board .g span:nth-child(3n){border-right:none}
+  .board .g span:nth-child(n+7){border-bottom:none}
+  .ln{position:absolute;opacity:.92;border-radius:4px}
+  .ln.h{left:0;width:180px;height:9px;top:calc(var(--p) - 4.5px)}
+  .ln.v{top:0;height:180px;width:9px;left:calc(var(--p) - 4.5px)}
+  .ln.d{left:-37px;top:85.5px;width:254px;height:9px;transform:rotate(45deg)}
+  .ln.d.opp{transform:rotate(-45deg)}
+  .board.humano .ln{background:var(--humano)} .board.ia .ln{background:var(--ia)}
+  .blab{margin-top:11px;font-size:13.5px}
+  .blab b{display:block;font-size:14.5px}
+  .step{display:flex;gap:14px;align-items:flex-start;margin-bottom:13px}
+  .step .num{flex:0 0 30px;height:30px;border:2px solid var(--ink);display:flex;align-items:center;
+             justify-content:center;font-weight:700;font-size:14.5px;background:#fff}
+  .step .tx{font-size:15.7px;line-height:1.45}
+  .step .tx b{display:block;font-size:16px}
+  .flow{display:flex;align-items:stretch;gap:10px;margin-bottom:16px}
+  .box{flex:1;background:#fff;border:1.5px solid var(--ink);padding:11px 13px;font-size:14px}
+  .box b{display:block;font-size:14.5px;margin-bottom:3px}
+  .box small{color:var(--muted);font-size:12.4px;line-height:1.35;display:block}
+  .arrow{align-self:center;font-size:20px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- 1 ─ Portada -->
+<section class="slide" id="s1">
+  <div style="height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:6px 0 24px">
+    <div>
+      <div class="kicker">TDD y CI/CD &nbsp;·&nbsp; Pre-requisito 2do Parcial &nbsp;·&nbsp; 28/10/2026</div>
+      <div style="width:78px;height:6px;background:var(--humano);margin:26px 0 30px"></div>
+      <h1 class="serif" style="font-size:63px;line-height:1.06;letter-spacing:-.02em;max-width:1050px">
+        Pruebas unitarias: manuales<br>vs. generadas con IA</h1>
+      <p style="font-size:21px;color:var(--muted);margin-top:22px;max-width:900px">
+        Kata <b style="color:var(--ink)">Tres en Raya</b>: misma implementación, dos suites de pruebas
+        comparadas línea por línea.</p>
+    </div>
+    <div class="cols" style="grid-template-columns:1fr 1fr 1.2fr;gap:18px">
+      <div class="card" style="border-top:5px solid var(--ink)"><h3 style="color:var(--ink)">Autor</h3>
+        <div style="font-size:17px">Axl Severich</div></div>
+      <div class="card" style="border-top:5px solid var(--ink)"><h3 style="color:var(--ink)">Metodología</h3>
+        <div style="font-size:15px">JUnit 4.13 · Maven · Red-Green-Refactor</div></div>
+      <div class="card" style="border-top:5px solid var(--ink)"><h3 style="color:var(--ink)">Entregables</h3>
+        <div style="font-size:15px">Repo GitHub público · prompts/ · este PDF</div></div>
+    </div>
+  </div>
+  <div class="foot"><span>Repositorio: https://github.com/SeverichAxl/TDD_GDC.git</span><span>01</span></div>
+</section>
+
+<!-- 2 ─ La kata -->
+<section class="slide" id="s2">
+  <div class="head"><h2>La kata: Tres en Raya</h2><span class="n">Requisitos y pruebas del enunciado</span></div>
+  <div class="cols" style="gap:20px">
+    <div class="card h">
+      <h3>Requerimiento 1</h3>
+      <p style="margin-bottom:9px"><b>Una pieza puede estar colocada en un espacio de un tablero 3×3.</b></p>
+      <ul style="font-size:15.5px">
+        <li>Fuera del eje X → se lanza una excepción</li>
+        <li>Fuera del eje Y → se lanza una excepción</li>
+        <li>Lugar ya ocupado → se lanza una excepción</li>
+      </ul>
+    </div>
+    <div class="card a">
+      <h3>Requerimiento 2</h3>
+      <p style="margin-bottom:9px"><b>Debe existir una forma de determinar qué jugador juega después.</b></p>
+      <ul style="font-size:15.5px">
+        <li>El primer turno siempre lo juega <code>'X'</code></li>
+        <li>Si el último turno fue <code>'X'</code>, el siguiente es <code>'+'</code></li>
+        <li>Si el último turno fue <code>'+'</code>, el siguiente es <code>'X'</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="border-top:5px solid var(--ink);margin-top:20px">
+    <h3 style="color:var(--ink)">Requerimiento 3</h3>
+    <p style="margin-bottom:9px"><b>Un jugador gana si es el primero en conectar una línea de un lado a otro, o de una esquina a otra.</b></p>
+    <div class="cols" style="grid-template-columns:1fr 1fr;gap:0">
+      <ul style="font-size:15.5px">
+        <li>Si no se cumple la condición de victoria → no hay ganador</li>
+        <li>Gana con toda una línea horizontal ocupada</li>
+      </ul>
+      <ul style="font-size:15.5px">
+        <li>Gana con toda una línea vertical ocupada</li>
+        <li>Gana con toda una línea diagonal ocupada</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note" style="margin-top:20px">
+    <b>Fuente:</b> presentación del curso <i>“3. TDD - CI CD.pdf”</i>, páginas 16 a 18.
+    La implementación <code>TresEnRaya.java</code> (80 líneas) y las dos suites viven en el repositorio local <code>TDD/</code>.
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>02</span></div>
+</section>
+
+<!-- 3 ─ Metodología -->
+<section class="slide" id="s3">
+  <div class="head"><h2>Cómo se comparó</h2><span class="n">Mismo código, dos suites</span></div>
+  <div class="flow">
+    <div class="box"><b>Implementación única</b><small>TresEnRaya.java · 80 líneas · sin tocar</small></div>
+    <div class="arrow">→</div>
+    <div class="box" style="border-color:var(--humano)"><b style="color:var(--humano)">Suite A — Humano</b>
+      <small>TresEnRayaTest.java · 10 pruebas · construida con el ciclo TDD</small></div>
+    <div class="box" style="border-color:var(--ia)"><b style="color:var(--ia)">Suite B — IA</b>
+      <small>TresEnRayaIATest.java · 27 pruebas · salida del prompt</small></div>
+    <div class="arrow">→</div>
+    <div class="box"><b>mvn -B clean test</b><small>JUnit 4.13 + GitHub Actions (JDK 17)</small></div>
+  </div>
+
+  <div class="cols" style="gap:24px;margin-top:6px">
+    <div>
+      <div class="cap">Suite A · escrita por el estudiante (TDD)</div>
+      <div class="metrics" style="grid-template-columns:repeat(2,1fr);gap:12px">
+        <div class="metric"><div class="v">10</div><div class="l">pruebas @Test</div></div>
+        <div class="metric"><div class="v">157</div><div class="l">líneas de código</div></div>
+        <div class="metric"><div class="v">13</div><div class="l">aserciones</div></div>
+        <div class="metric"><div class="v">10</div><div class="l">System.out.println</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="cap">Suite B · generada con IA (prompt 01 + 02)</div>
+      <div class="metrics" style="grid-template-columns:repeat(2,1fr);gap:12px">
+        <div class="metric"><div class="v">27</div><div class="l">pruebas @Test</div></div>
+        <div class="metric"><div class="v">251</div><div class="l">líneas de código</div></div>
+        <div class="metric"><div class="v">44</div><div class="l">aserciones</div></div>
+        <div class="metric"><div class="v">0</div><div class="l">System.out.println</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:22px;display:flex;justify-content:space-between;align-items:center">
+    <div><b>Resultado de la suite completa:</b> Tests run: 42, Failures: 0, Errors: 0, Skipped: 0</div>
+    <div style="font-size:14px;color:var(--muted)">10 humanas + 27 IA + 5 de la kata de la Calculadora</div>
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>03</span></div>
+</section>
+
+<!-- 4 ─ El prompt -->
+<section class="slide" id="s4">
+  <div class="head"><h2>El prompt usado con la IA</h2><span class="n">prompts/PROMPT-01 y PROMPT-02</span></div>
+  <div class="cols" style="gap:24px">
+    <div>
+      <div class="cap">Qué controla el prompt</div>
+      <div class="step"><div class="num">1</div><div class="tx"><b>Rollo y contexto</b>Experto senior en TDD; proyecto Maven, Java 8, JUnit 4.13, package <code>com.ucb.tdd</code>.</div></div>
+      <div class="step"><div class="num">2</div><div class="tx"><b>API y contrato exacto</b><code>jugar(int x, int y)</code>, <code>siguienteTurno()</code>, mensajes literales de las excepciones y de los resultados.</div></div>
+      <div class="step"><div class="num">3</div><div class="tx"><b>Especificación como única fuente de verdad</b>Los 3 requerimientos y sus 10 casos, copiados de la presentación del curso.</div></div>
+      <div class="step"><div class="num">4</div><div class="tx"><b>Cobertura mínima exigida</b>7 bloques: límites de coordenadas, mensajes, turno, 8 líneas ganadoras, tablero lleno…</div></div>
+      <div class="step"><div class="num">5</div><div class="tx"><b>Restricciones de estilo</b><code>@Before</code>, <code>assertThrows</code>, nombres en español, sin <code>System.out</code>, sin librerías extra.</div></div>
+      <div class="step" style="margin-bottom:0"><div class="num">6</div><div class="tx"><b>Prohibición de inventar requisitos</b>Si la especificación no lo define, no se prueba. + criterio de aceptación: <code>mvn -B clean test</code> en verde.</div></div>
+    </div>
+    <div>
+      <div class="cap">Fragmento literal del prompt</div>
+      <div class="code a" style="height:400px">## Cobertura mínima exigida
+1. Coordenadas inválidas en X (0, 4 y negativa) y en
+   Y (0, 4 y negativa), verificando también el
+   mensaje exacto de la excepción.
+2. Coordenadas válidas en los extremos (1,1) y (3,3)
+   -> no lanzan excepción.
+3. Posición ocupada -> excepción, con su mensaje.
+4. Orden de turnos: primer turno 'X', alternancia
+   X -&gt; + -&gt; X durante una secuencia.
+5. Sin ganador -&gt; "No hay ganador".
+6. Las 8 líneas ganadoras (3 filas + 3 columnas +
+   2 diagonales), probando que gana 'X' y que gana '+'.
+7. Tablero lleno sin tres en raya -&gt; "No hay ganador".</div>
+      <div class="note" style="margin-top:14px;font-size:14.2px">
+        <b>PROMPT-02</b> (segunda ronda): pedir a la IA una matriz de cobertura, cerrar los huecos
+        con pruebas nuevas y <b>descartar los requisitos que ella misma inventó</b>. Salida final:
+        <code>TresEnRayaIATest.java</code> con 27 pruebas.
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>04</span></div>
+</section>
+
+<!-- 5 ─ Tabla comparativa -->
+<section class="slide" id="s5">
+  <div class="head"><h2>Tabla comparativa</h2><span class="n">Métricas y comportamiento de cada suite</span></div>
+  <table>
+    <thead><tr><th style="width:31%">Criterio</th><th class="c th-h" style="width:34.5%">Humano · TresEnRayaTest</th><th class="c th-a" style="width:34.5%">IA · TresEnRayaIATest</th></tr></thead>
+    <tbody>
+      <tr><td><b>Pruebas / líneas / aserciones</b></td><td class="c hl-h">10 / 157 / 13</td><td class="c hl-a">27 / 251 / 44</td></tr>
+      <tr><td><b>Cómo se generaron</b></td><td class="c">Ciclo TDD (rojo-verde-refactor), una a una</td><td class="c">De una sola pasada con el prompt + auditoría</td></tr>
+      <tr><td><b>Preparación del tablero</b></td><td class="c"><code>new TresEnRaya()</code> repetido 10 veces</td><td class="c">Un único <code>@Before prepararTablero()</code></td></tr>
+      <tr><td><b>Código muerto</b></td><td class="c"><span class="no">Sí</span> — método <code>before()</code> sin <code>@Before</code></td><td class="c"><span class="ok">No</span></td></tr>
+      <tr><td><b>Salida a consola en las pruebas</b></td><td class="c"><span class="no">10 println</span> (ruido en CI)</td><td class="c"><span class="ok">0 println</span></td></tr>
+      <tr><td><b>Cómo se prueban las excepciones</b></td><td class="c"><code>@Rule ExpectedException</code> + <code>expect(Exception.class)</code></td><td class="c"><code>assertThrows</code> + <code>assertEquals(mensaje)</code></td></tr>
+      <tr><td><b>Mensajes exactos de excepción</b></td><td class="c hl-h">0 de 2 validados</td><td class="c hl-a">2 de 2 validados (5 pruebas)</td></tr>
+      <tr><td><b>Coordenadas fuera de rango probadas</b></td><td class="c">solo <code>5</code></td><td class="c"><code>0</code>, <code>4</code>, <code>5</code> y <code>-1</code> en X e Y</td></tr>
+      <tr><td><b>Líneas ganadoras cubiertas</b></td><td class="c hl-h">4 de 8</td><td class="c hl-a">8 de 8</td></tr>
+      <tr><td><b>Formas de ganar por jugador</b></td><td class="c">2 de 4 para 'X', 2 de 4 para '+'</td><td class="c">4 de 4 para 'X' y 4 de 4 para '+'</td></tr>
+      <tr><td><b>Tablero lleno sin ganador (empate)</b></td><td class="c hl-h">No</td><td class="c hl-a">Sí (1 prueba)</td></tr>
+      <tr><td><b>Casos de la especificación cubiertos</b></td><td class="c">10 de 10</td><td class="c">10 de 10</td></tr>
+      <tr><td><b>Requisitos fuera del enunciado</b></td><td class="c">No plantea ninguno</td><td class="c">Los propone y los <b>descarta</b> en el prompt 02</td></tr>
+    </tbody>
+  </table>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>05</span></div>
+</section>
+
+<!-- 6 ─ Diferencia 1 -->
+<section class="slide" id="s6">
+  <div class="head"><h2>Diferencia 1 · Preparación y estructura</h2><span class="n">Duplicación vs. setup declarativo</span></div>
+  <div class="cols" style="gap:22px">
+    <div>
+      <p class="cap">Humano — TresEnRayaTest.java</p>
+      <div class="code h"><span class="kw">@Test</span>
+<span class="kw">public void</span> cuandoFueraXlanzarExcepcion() <span class="kw">throws</span> Exception{
+    tresEnRaya = <span class="kw">new</span> TresEnRaya();
+    System.out.println(<span class="st">"Inicializando Prueba.... "</span> + ...);
+    exception.expect(Exception.class);
+    tresEnRaya.jugar(5,2);
+}
+
+<span class="cm">// este método nunca se ejecuta:</span>
+<span class="kw">public final void</span> before(){ }</div>
+      <ul style="margin-top:14px;font-size:15.4px">
+        <li>El objeto se reconstruye dentro de <b>cada</b> prueba (×10), con el mismo println de arranque.</li>
+        <li><code>before()</code> <b>no tiene <code>@Before</code></b>: el “arranque” escrito existe pero no corre nunca.</li>
+        <li>Patrón repetido a mano “1. Preparación / 2. Lógica / 3. Verificación” en los 10 métodos.</li>
+      </ul>
+    </div>
+    <div>
+      <p class="cap">IA — TresEnRayaIATest.java</p>
+      <div class="code a"><span class="kw">private</span> TresEnRaya juego;
+
+<span class="kw">@Before</span>
+<span class="kw">public void</span> prepararTablero() {
+    juego = <span class="kw">new</span> TresEnRaya();
+}
+
+<span class="kw">@Test</span>
+<span class="kw">public void</span> cuandoLaCoordenadaXEsMenorQueUnoSeLanzaExcepcion() {
+    Exception e = assertThrows(Exception.class,
+        () -&gt; juego.jugar(0, 2));
+    assertEquals(<span class="st">"La coordenada 0 esta fuera de lugar"</span>,
+        e.getMessage());
+}</div>
+      <ul style="margin-top:14px;font-size:15.4px">
+        <li>Un solo punto de preparación: si cambia la API del juego, se edita <b>un</b> método.</li>
+        <li>Cero salida a consola: el log de CI muestra solo fallos reales.</li>
+        <li>Nombres largos y descriptivos, en un patrón consistente en los 27 métodos.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>06</span></div>
+</section>
+
+<!-- 7 ─ Diferencia 2 -->
+<section class="slide" id="s7">
+  <div class="head"><h2>Diferencia 2 · Manejo de excepciones</h2><span class="n">“Falle por la razón correcta”</span></div>
+  <div class="cols" style="gap:22px">
+    <div>
+      <p class="cap">Humano — cualquier excepción sirve</p>
+      <div class="code h"><span class="kw">@Rule</span>
+<span class="kw">public</span> ExpectedException exception = ExpectedException.none();
+
+<span class="kw">@Test</span>
+<span class="kw">public void</span> cuandoLugarOcupadoLanzarExcepcion() <span class="kw">throws</span> Exception {
+    tresEnRaya = <span class="kw">new</span> TresEnRaya();
+    tresEnRaya.jugar(1,3);
+    exception.expect(Exception.class);  <span class="cm">// ¡cualquiera!</span>
+    tresEnRaya.jugar(1,3);
+}</div>
+      <ul style="margin-top:14px;font-size:15.4px">
+        <li><code>ExpectedException</code> está <b>deprecado</b> desde JUnit 4.13.</li>
+        <li><code>Exception.class</code> acepta <b>cualquier</b> error: un <code>NullPointerException</code>, un fallo de tipeo o una excepción por otra causa dejaría la prueba en verde.</li>
+        <li>Los mensajes no se verifican: 0 de 2.</li>
+        <li>Las coordenadas 0, 4 y negativas nunca se prueban (solo <code>5</code>).</li>
+      </ul>
+    </div>
+    <div>
+      <p class="cap">IA — se valida el contrato público</p>
+      <div class="code a"><span class="kw">@Test</span>
+<span class="kw">public void</span> cuandoLaPosicionYaEstaOcupadaSeLanzaExcepcion() <span class="kw">throws</span> Exception {
+    juego.jugar(1, 3);
+    Exception e = assertThrows(Exception.class,
+        () -&gt; juego.jugar(1, 3));
+    assertEquals(<span class="st">"La posicion ya esta ocupada"</span>,
+        e.getMessage());
+}</div>
+      <ul style="margin-top:14px;font-size:15.4px">
+        <li><code>assertThrows</code> <b>devuelve</b> la excepción: se comprueba el mensaje literal del contrato.</li>
+        <li>Una prueba falla si llega una excepción distinta de la esperada.</li>
+        <li>8 pruebas de coordenadas inválidas (0, 4, 5 y &#8722;1 en ambos ejes) + 2 de extremos v&#225;lidos (1,1) y (3,3).</li>
+        <li>Los 2 mensajes del contrato: <b>2 de 2</b> cubiertos.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note" style="margin-top:6px">
+    <b>Riesgo sustancial:</b> con <code>expect(Exception.class)</code> una prueba puede quedar verde
+    <i>por la razón equivocada</i> y ocultar un defecto real; con <code>assertThrows</code> + mensaje,
+    la prueba verifica además que la API se llama exactamente como fue diseñada.
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>07</span></div>
+</section>
+
+<!-- 8 ─ Diferencia 3 -->
+<section class="slide" id="s8">
+  <div class="head"><h2>Diferencia 3 · Cobertura</h2><span class="n">Líneas ganadoras y casos límite</span></div>
+  <div class="cols" style="gap:26px;grid-template-columns:0.9fr 1.1fr">
+    <div>
+      <div class="boards">
+        <div class="bwrap">
+          <div class="board humano">
+            <div class="g"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <i class="ln h" style="--p:30px"></i>
+            <i class="ln v" style="--p:30px"></i>
+            <i class="ln d"></i>
+            <i class="ln d opp"></i>
+          </div>
+          <div class="blab"><b style="color:var(--humano)">Humano: 4 de 8</b>fila 1 · columna 1 · 2 diagonales</div>
+        </div>
+        <div class="bwrap">
+          <div class="board ia">
+            <div class="g"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <i class="ln h" style="--p:30px"></i><i class="ln h" style="--p:90px"></i><i class="ln h" style="--p:150px"></i>
+            <i class="ln v" style="--p:30px"></i><i class="ln v" style="--p:90px"></i><i class="ln v" style="--p:150px"></i>
+            <i class="ln d"></i><i class="ln d opp"></i>
+          </div>
+          <div class="blab"><b style="color:var(--ia)">IA: 8 de 8</b>3 filas + 3 columnas + 2 diagonales</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:20px;font-size:14.6px">
+        La IA agrega una prueba por cada línea del tablero <b>y</b> deja que cada jugador
+        (<code>'X'</code> y <code>'+'</code>) demuestre sus 4 formas de ganar; el humano deja sin
+        cubrir la fila 3, la fila 2, la columna 2 y la columna 3.
+      </div>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th style="width:52%">Caso</th><th class="c th-h">Humano</th><th class="c th-a">IA</th></tr></thead>
+        <tbody>
+          <tr><td>Los 10 casos de la especificación</td><td class="c"><span class="ok">10/10</span></td><td class="c"><span class="ok">10/10</span></td></tr>
+          <tr class="hl-h"><td>Excepción en eje X fuera de rango</td><td class="c"><span class="ok">✓ (5)</span></td><td class="c"><span class="ok">✓ (0, 4, 5)</span></td></tr>
+          <tr class="hl-h"><td>Excepción en eje Y fuera de rango</td><td class="c"><span class="ok">✓ (5)</span></td><td class="c"><span class="ok">✓ (0, 4, 5)</span></td></tr>
+          <tr><td>Coordenada negativa (−1)</td><td class="c"><span class="no">✗</span></td><td class="c"><span class="ok">✓</span></td></tr>
+          <tr><td>Extremos válidos (1,1) y (3,3)</td><td class="c">implícitos</td><td class="c"><span class="ok">✓ explícitos</span></td></tr>
+          <tr><td>Mensaje literal de cada excepción</td><td class="c"><span class="no">0/2</span></td><td class="c"><span class="ok">2/2</span></td></tr>
+          <tr class="hl-h"><td>Líneas ganadoras</td><td class="c"><span class="no">4/8</span></td><td class="c"><span class="ok">8/8</span></td></tr>
+          <tr><td>'X' y '+' probados en las 4 formas de ganar</td><td class="c"><span class="no">2 y 2</span></td><td class="c"><span class="ok">4 y 4</span></td></tr>
+          <tr><td>Turno inicial y alternancia en secuencia</td><td class="c">parcial</td><td class="c"><span class="ok">✓</span></td></tr>
+          <tr><td>Tablero lleno sin ganador</td><td class="c"><span class="no">✗</span></td><td class="c"><span class="ok">✓</span></td></tr>
+          <tr><td>Prueba de regresión del mensaje “No hay ganador”</td><td class="c"><span class="ok">✓</span></td><td class="c"><span class="ok">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>08</span></div>
+</section>
+
+<!-- 9 ─ Diferencia 4 -->
+<section class="slide" id="s9">
+  <div class="head"><h2>Diferencia 4 · Alcance y proceso</h2><span class="n">Lo que cada enfoque aporta (y sobrepone)</span></div>
+  <div class="cols" style="gap:22px">
+    <div class="card h">
+      <h3>Humano: intención y proceso TDD</h3>
+      <ul style="font-size:15.4px">
+        <li>Las pruebas nacen <b>antes</b> del código: el historial muestra el ciclo (“hacer fallar intencionalmente”, “corregir el error”, “rompiendo una prueba / error de regresión”).</li>
+        <li>Cada prueba toma una <b>decisión de diseño</b>: define cómo se quiere usar <code>jugar()</code> y <code>siguienteTurno()</code>.</li>
+        <li>Sabe qué es relevante para el dominio y no prueba ruido.</li>
+        <li><b>Límite:</b> se detiene en el mínimo del enunciado: 4 de 8 líneas, sin límites de coordenadas ni mensajes, y con un método de setup que nunca corre.</li>
+      </ul>
+    </div>
+    <div class="card a">
+      <h3>IA: amplitud y consistencia</h3>
+      <ul style="font-size:15.4px">
+        <li>27 pruebas en una pasada: casos límite, ambas coordenadas, los 8 tableros ganadores y el empate.</li>
+        <li>Patrón uniforme de nombres, aserciones y comentarios en todo el archivo.</li>
+        <li><b>Riesgo controlado:</b> tiende a <i>inventar</i> requisitos. Ejemplos que se le pidieron y se <b>descartaron</b> en el prompt 02:
+          <div style="background:#fff;border:1px solid var(--line);padding:8px 10px;margin-top:7px;font-size:14.2px">
+            · “jugar después de un ganador debe lanzar excepción” → no está en el enunciado y la implementación lo permite.<br>
+            · “regla propia de empate / contador de turnos” → fuera del requerimiento 3.</div>
+        </li>
+        <li>No vive el ciclo rojo-verde-refactor: entrega todo de golpe, sin la disciplina de paso pequeño.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note" style="margin-top:18px">
+    <b>Lo que comparten:</b> ambas suites se acoplan a los strings exactos de retorno
+    (<code>"X es el ganador"</code>, <code>"No hay ganador"</code>), así que un cambio de formato rompe las pruebas;
+    y la propia implementación imprime <code>"Ocupando posicion: x, y"</code> en cada jugada, ruido que convendría
+    eliminar antes del pipeline de CI.
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>09</span></div>
+</section>
+
+<!-- 10 ─ Veredicto -->
+<section class="slide" id="s10">
+  <div class="head"><h2>Fortalezas, debilidades y veredicto</h2><span class="n">Balance de la comparación</span></div>
+  <div class="cols" style="gap:22px">
+    <div class="card h">
+      <h3>Humano · 10 pruebas</h3>
+      <p class="cap" style="margin-top:6px;color:var(--humano)">Fortalezas</p>
+      <ul style="font-size:15.2px">
+        <li>Trazabilidad total al ciclo TDD y a la decisión de diseño.</li>
+        <li>Cubre el 100 % de los casos pedidos en la presentación.</li>
+        <li>Código corto, legible y con comentarios de jugada.</li>
+      </ul>
+      <p class="cap" style="margin-top:14px;color:var(--humano)">Debilidades</p>
+      <ul style="font-size:15.2px">
+        <li>Setup duplicado + 10 <code>println</code> + <code>before()</code> muerto.</li>
+        <li>Excepciones genéricas: posibles <b>falsos verdes</b>.</li>
+        <li>4 de 8 líneas ganadoras; sin límites 0/4 ni mensajes.</li>
+      </ul>
+    </div>
+    <div class="card a">
+      <h3>IA · 27 pruebas</h3>
+      <p class="cap" style="margin-top:6px;color:var(--ia)">Fortalezas</p>
+      <ul style="font-size:15.2px">
+        <li>Cobertura 8/8 líneas, ambos jugadores, casos límite y empate.</li>
+        <li>Verifica el contrato (mensajes exactos) con <code>assertThrows</code>.</li>
+        <li>Consistencia, cero ruido en consola, listo para CI.</li>
+      </ul>
+      <p class="cap" style="margin-top:14px;color:var(--ia)">Debilidades</p>
+      <ul style="font-size:15.2px">
+        <li>Puede inventar requisitos que nadie definió (filtra el prompt 02).</li>
+        <li>No aporta el proceso TDD: no es “red-green-refactor”.</li>
+        <li>Código más largo (251 líneas) y repetitivo en las secuencias.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note" style="margin-top:20px;border-left-color:var(--ink)">
+    <b>Veredicto:</b> la IA <b>no reemplaza</b> las pruebas escritas en TDD; las <b>amplía</b>.
+    El enfoque usado aquí fue: escribir las pruebas con el ciclo rojo-verde-refactor, usar el prompt
+    para generar una segunda suite más exhaustiva, y dejar ambas en verde con
+    <code>mvn -B clean test</code> (42 pruebas, 0 fallos) dentro del pipeline de GitHub Actions.
+  </div>
+  <div class="foot"><span>Kata Tres en Raya · Humano vs. IA</span><span>10</span></div>
+</section>
+
+<!-- 11 ─ Conclusiones -->
+<section class="slide" id="s11">
+  <div class="head"><h2>Conclusiones y entregables</h2><span class="n">Cierre</span></div>
+  <div class="cols" style="gap:26px">
+    <div>
+      <div class="cap">Qué aprendimos</div>
+      <div class="step"><div class="num">1</div><div class="tx"><b>La calidad del prompt define la calidad de las pruebas</b>API + contrato + especificación + cobertura mínima + estilo = una suite que compila y pasa a la primera.</div></div>
+      <div class="step"><div class="num">2</div><div class="tx"><b>Sin la cláusula “no inventes requisitos”, la IA se pasa</b>Propone casos que el enunciado no pide; probarlos acopla la prueba a decisiones que nadie tomó.</div></div>
+      <div class="step"><div class="num">3</div><div class="tx"><b>La IA brilla donde el humano se ahorra trabajo</b>Límites, matrices de cobertura y mensajes exactos: menos duplicación y menos “falsos verdes”.</div></div>
+      <div class="step" style="margin-bottom:0"><div class="num">4</div><div class="tx"><b>El humano sigue siendo el dueño del diseño</b>El ciclo TDD define el API; la IA solo lo verifica con más casos.</div></div>
+    </div>
+    <div>
+      <div class="cap">Entregables de la actividad</div>
+      <div class="card" style="border-top:5px solid var(--ink);margin-bottom:16px">
+        <ul style="font-size:15.2px">
+          <li><b>Repositorio GitHub público</b> (código + pruebas + workflow de CI) → <code>github.com/SeverichAxl/TDD_GDC</code></li>
+          <li><b>Prompt(s):</b> <code>prompts/PROMPT-01-generar-pruebas-unitarias.md</code> y <code>prompts/PROMPT-02-auditoria-cobertura.md</code></li>
+          <li><b>Este PDF</b> con el detalle de la comparación</li>
+        </ul>
+      </div>
+      <div class="cap">Pipeline de CI (GitHub Actions)</div>
+      <div class="code" style="font-size:13px"><span class="cm"># .github/workflows/maven.yml</span>
+on: push / pull_request → rama main
+jobs: run-unit-tests (ubuntu-latest, JDK 17 temurin)
+  - uses: actions/checkout@v4
+  - uses: actions/setup-java@v4
+  - run: mvn -B clean compile test --file pom.xml</div>
+      <div class="metrics" style="margin-top:16px;grid-template-columns:1fr 1fr 1fr">
+        <div class="metric"><div class="v">42</div><div class="l">pruebas</div></div>
+        <div class="metric"><div class="v">0</div><div class="l">fallos</div></div>
+        <div class="metric"><div class="v">3</div><div class="l">suites</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Axl Severich · TDD y CI/CD · 28/10/2026</span><span>11</span></div>
+</section>
+
+</body>
+</html>
